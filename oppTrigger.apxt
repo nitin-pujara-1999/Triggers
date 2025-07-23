@@ -1,0 +1,5 @@
+trigger oppTrigger on Opportunity(After Insert, After Update, After Delete, After Undelete){
+    if(trigger.isAfter && (trigger.isInsert || trigger.isUpdate || trigger.isDelete || trigger.isUndelete)){
+        oppAccHandler.updateOppCounts(trigger.new, trigger.oldMap);
+    }
+}
