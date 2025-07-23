@@ -1,0 +1,59 @@
+public class oppAccHandler {
+    public static void updateOppCounts(List<Opportunity> newOpps, Map<Id, Opportunity> oldOpps){
+        Set<Id> accIds = new Set<Id>();
+        if(trigger.isInsert || trigger.isUndelete){
+            for(Opportunity opp : newOpps){
+                if(opp.AccountId!=null){
+                    accIds.add(opp.AccountId);
+                }
+            }
+        }
+        
+        if(trigger.isUpdate){
+            for(Opportunity opp : newOpps){
+                if(opp.AccountId!= oldOpps.get(opp.Id).AccountId){
+                    if(oldOpps.get(opp.Id).AccountId != null)
+                        accIds.add(oldOpps.get(opp.Id).AccountId);
+                    if(opp.AccountId!=null)
+                        accIds.add(opp.AccountId);
+                }
+                    if(opp.StageName != oldOpps.get(opp.Id).StageName && opp.AccountId != null){
+                        accIds.add(opp.AccountId);
+                    }
+            }
+        }	
+        
+        if(trigger.isDelete){
+            for(Opportunity opp : oldOpps.values()){
+                if(opp.AccountId != null){
+                    accIds.add(opp.AccountId);
+                }
+            }
+        }
+        action(accIds);
+    }
+    
+    public static void action(Set<Id> accIds){
+        Map<Id, Account> accMap = new Map<Id, Account>([Select Id, Total_Open_Opportunities__c, Total_Closed_Opportunities__c, (Select Id, StageName from Opportunities) from Account where Id IN : accIds]);
+        List<Account> accToUpdate=new List<Account>();
+        for(Account acc : accMap.Values()){
+            Integer ClosedOpps=0;
+            Integer OpenOpps=0;
+            List<Opportunity> allopp=acc.Opportunities;
+            for(Opportunity opp : allopp){
+                if(opp.StageName == 'Closed Won' || opp.StageName == 'Closed Lost'){
+                    ClosedOpps++;
+                }
+                else{
+                    OpenOpps++;
+                }
+            }
+            acc.Total_Closed_Opportunities__c=ClosedOpps;
+            acc.Total_Open_Opportunities__c=OpenOpps;
+            accToUpdate.add(acc);
+        }
+        if(!accToUpdate.isEmpty()){
+            update accToUpdate;
+        }
+    }
+}
